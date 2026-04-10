@@ -1,66 +1,38 @@
-// ─────────────────────────────────────────────────────────────
-// scripts/storage.js — Shared storage handler for DSA Platform
-// Used by all game modules to save/read progress data
-// ─────────────────────────────────────────────────────────────
+// Storage Handler
 
 function saveData(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
 }
 
-function getData(key) {
-    return JSON.parse(localStorage.getItem(key));
-}
+// Load dashboard
+function loadDashboard() {
+  dashboard.innerHTML = "";
 
-// ── Score ──────────────────────────────────────────────────────
-// Save score for a module (also tracks attempts)
-function saveScore(module, score) {
-    let scores = getData("scores") || {};
-    scores[module] = score;
-    saveData("scores", scores);
+  let hasData = false;
 
-    let attempts = getData("attempts") || {};
-    attempts[module] = (attempts[module] || 0) + 1;
-    saveData("attempts", attempts);
+  modules.forEach(mod => {
+    const data = getModuleData(mod);
 
-    recordActivity();
-}
-
-function getScore(module) {
-    let scores = getData("scores") || {};
-    return scores[module] ?? null;
-}
-
-// ── Completion ─────────────────────────────────────────────────
-function markCompleted(module) {
-    let completed = getData("completed") || [];
-    if (!completed.includes(module)) {
-        completed.push(module);
-        saveData("completed", completed);
+    if (data.attempts > 0) {
+      hasData = true;
     }
+
+    const card = createCard(mod, data);
+    dashboard.appendChild(card);
+  });
+
+  if (!hasData) {
+    emptyMsg.style.display = "block";
+  }
 }
 
-function isCompleted(module) {
-    let completed = getData("completed") || [];
-    return completed.includes(module);
-}
+// OPTIONAL: helper for other modules to save data
+function saveProgress(module, score, total) {
+  let data = getModuleData(module);
 
-// ── Attempts ───────────────────────────────────────────────────
-function getAttempts(module) {
-    let attempts = getData("attempts") || {};
-    return attempts[module] || 0;
-}
+  data.attempts += 1;
+  data.score += score;
+  data.total += total;
 
-// ── Activity (streak tracking) ─────────────────────────────────
-function recordActivity() {
-    let history = getData("activity-history") || [];
-    const today = new Date().toDateString();
-    if (!history.includes(today)) {
-        history.push(today);
-        saveData("activity-history", history);
-    }
-}
-
-// ── Reset ──────────────────────────────────────────────────────
-function resetAll() {
-    ["scores", "completed", "attempts", "activity-history"].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem(module, JSON.stringify(data));
 }
